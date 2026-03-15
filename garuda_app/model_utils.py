@@ -3,8 +3,14 @@ import torch.nn as nn
 import cv2
 import numpy as np
 from ultralytics import YOLO
+import sys
+sys.path.insert(0, '../sort')
+from sort.sort import Sort
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+vehicle_classes = ["car","truck","bus","motorcycle","bicycle"]
+person_class = "person"
 
 
 class SimpleEncoder(nn.Module):
@@ -63,7 +69,12 @@ def load_yolo():
     return yolo_model
 
 
-def enhance_image(model, yolo_model, frame):
+def load_tracker():
+    tracker = Sort(max_age=20, min_hits=3, iou_threshold=0.3)
+    return tracker
+
+
+def enhance_image(model, yolo_model, tracker, frame, counted_ids):
 
     original = frame.copy()
 
@@ -100,28 +111,66 @@ def enhance_image(model, yolo_model, frame):
     # YOLO Detection
     detected = output.copy()
 
+    detections = []
+
     results = yolo_model.predict(
         source=output,
         conf=0.25,
         verbose=False
     )
 
+    detections_for_tracker = []
+    classes = []
+
     for r in results:
         for box in r.boxes:
             x1,y1,x2,y2 = map(int,box.xyxy[0])
-            cls = int(box.cls[0])
             score = float(box.conf[0])
+            cls = int(box.cls[0])
             label = yolo_model.names[cls]
 
-            cv2.rectangle(detected,(x1,y1),(x2,y2),(0,255,0),2)
-            cv2.putText(
-                detected,
-                f"{label} {score:.2f}",
-                (x1,y1-5),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                (255,0,0),
-                2
-            )
+            detections_for_tracker.append([x1,y1,x2,y2,score])
+            classes.append(label)
 
-    return original, output, detected
+            detections.append({
+                "Object": label,
+                "Confidence": round(score,2)
+            })
+
+    if len(detections_for_tracker) == 0:
+        return original, output, detected, detections, counted_ids, 0, 0
+
+    detections_for_tracker = np.array(detections_for_tracker)
+
+    # SORT Tracking
+    tracks = tracker.update(detections_for_tracker)
+
+    people_count = 0
+    vehicle_count = 0
+
+    for i, track in enumerate(tracks):
+        x1,y1,x2,y2,track_id = map(int,track)
+        track_id = int(track_id)
+
+        cv2.rectangle(detected,(x1,y1),(x2,y2),(0,255,0),2)
+        cv2.putText(
+            detected,
+            f"ID {track_id}",
+            (x1,y1-5),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (0,0,255),
+            2
+        )
+
+        if track_id not in counted_ids and i < len(classes):
+            counted_ids.add(track_id)
+            label = classes[i]
+
+            if label == person_class:
+                people_count += 1
+
+            if label in vehicle_classes:
+                vehicle_count += 1
+
+    return original, output, detected, detections, counted_ids, people_count, vehicle_count
