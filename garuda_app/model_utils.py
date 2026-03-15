@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import cv2
 import numpy as np
+from ultralytics import YOLO
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -57,7 +58,12 @@ def load_model():
     return model
 
 
-def enhance_image(model, frame):
+def load_yolo():
+    yolo_model = YOLO("yolov8n.pt")
+    return yolo_model
+
+
+def enhance_image(model, yolo_model, frame):
 
     original = frame.copy()
 
@@ -91,4 +97,31 @@ def enhance_image(model, frame):
     lab = cv2.merge((l,a,b))
     output = cv2.cvtColor(lab,cv2.COLOR_LAB2BGR)
 
-    return original, output
+    # YOLO Detection
+    detected = output.copy()
+
+    results = yolo_model.predict(
+        source=output,
+        conf=0.25,
+        verbose=False
+    )
+
+    for r in results:
+        for box in r.boxes:
+            x1,y1,x2,y2 = map(int,box.xyxy[0])
+            cls = int(box.cls[0])
+            score = float(box.conf[0])
+            label = yolo_model.names[cls]
+
+            cv2.rectangle(detected,(x1,y1),(x2,y2),(0,255,0),2)
+            cv2.putText(
+                detected,
+                f"{label} {score:.2f}",
+                (x1,y1-5),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (255,0,0),
+                2
+            )
+
+    return original, output, detected

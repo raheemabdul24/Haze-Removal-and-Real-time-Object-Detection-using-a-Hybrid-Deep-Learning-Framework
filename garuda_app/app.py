@@ -1,7 +1,7 @@
 import streamlit as st
 import cv2
 import numpy as np
-from model_utils import load_model, enhance_image
+from model_utils import load_model, load_yolo, enhance_image
 
 st.set_page_config(
     page_title="All Weather Image Enhancement",
@@ -10,8 +10,9 @@ st.set_page_config(
 
 st.title("All Weather Surveillance Enhancement System")
 
-with st.spinner("Loading Enhancement Model..."):
+with st.spinner("Loading Models..."):
     model = load_model()
+    yolo_model = load_yolo()
 
 option = st.sidebar.selectbox(
     "Select Input Source",
@@ -31,12 +32,13 @@ if option == "Image Upload":
         if img is None:
             st.error("Error: Could not read image file. Please upload a valid image (JPG, PNG, etc.)")
         else:
-            original, enhanced = enhance_image(model,img)
+            original, enhanced, detected = enhance_image(model,yolo_model,img)
 
-            col1,col2 = st.columns(2)
+            col1,col2,col3 = st.columns(3)
 
-            col1.image(original,channels="BGR",caption="Original Image")
-            col2.image(enhanced,channels="BGR",caption="Enhanced Image")
+            col1.image(original,channels="BGR",caption="Original")
+            col2.image(enhanced,channels="BGR",caption="Dehazed")
+            col3.image(detected,channels="BGR",caption="Object Detection")
 
 
 # VIDEO
@@ -63,9 +65,9 @@ elif option == "Video Upload":
                 if not ret:
                     break
 
-                original, enhanced = enhance_image(model,frame)
+                original, enhanced, detected = enhance_image(model,yolo_model,frame)
 
-                combined = np.hstack((original,enhanced))
+                combined = np.hstack((original, enhanced, detected))
 
                 frame_placeholder.image(
                     combined,
@@ -95,9 +97,9 @@ elif option == "Webcam":
             if not ret:
                 break
 
-            original, enhanced = enhance_image(model,frame)
+            original, enhanced, detected = enhance_image(model,yolo_model,frame)
 
-            combined = np.hstack((original,enhanced))
+            combined = np.hstack((original, enhanced, detected))
 
             frame_window.image(
                 combined,
