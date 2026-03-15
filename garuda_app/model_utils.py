@@ -4,8 +4,9 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 import sys
-sys.path.insert(0, '../sort')
-from sort.sort import Sort
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from sort import Sort
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
