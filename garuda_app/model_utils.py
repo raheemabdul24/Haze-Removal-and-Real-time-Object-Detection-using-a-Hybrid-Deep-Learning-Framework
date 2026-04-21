@@ -10,6 +10,9 @@ from sort import Sort
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Get the directory of the current script
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 vehicle_classes = ["car","truck","bus","motorcycle","bicycle"]
 person_class = "person"
 
@@ -56,8 +59,9 @@ def load_model():
 
     model = SWDModel().to(device)
 
+    model_path = os.path.join(SCRIPT_DIR, "models", "dehazing_best_model.pth")
     model.load_state_dict(
-        torch.load("models/dehazing_best_model.pth", map_location=device)
+        torch.load(model_path, map_location=device)
     )
 
     model.eval()
@@ -66,7 +70,8 @@ def load_model():
 
 
 def load_yolo():
-    yolo_model = YOLO("yolov8n.pt")
+    yolo_path = os.path.join(SCRIPT_DIR, "yolov8n.pt")
+    yolo_model = YOLO(yolo_path)
     return yolo_model
 
 
