@@ -2,7 +2,28 @@ import streamlit as st
 import cv2
 import numpy as np
 import pandas as pd
+import os
+import subprocess
+import sys
 from model_utils import load_model, load_yolo, load_tracker, enhance_image
+
+
+def _running_under_streamlit() -> bool:
+    try:
+        import streamlit.runtime as streamlit_runtime
+
+        return streamlit_runtime.exists()
+    except Exception:
+        return False
+
+
+if __name__ == "__main__" and not _running_under_streamlit():
+    subprocess.run(
+        [sys.executable, "-m", "streamlit", "run", os.path.abspath(__file__), *sys.argv[1:]],
+        cwd=os.path.dirname(os.path.abspath(__file__)),
+        check=False,
+    )
+    raise SystemExit(0)
 
 st.set_page_config(
     page_title="All Weather Image Enhancement",
