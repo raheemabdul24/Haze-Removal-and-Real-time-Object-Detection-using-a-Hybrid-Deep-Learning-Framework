@@ -6,7 +6,7 @@ from ultralytics import YOLO
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from sort import Sort
+# from sort import Sort
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -76,8 +76,9 @@ def load_yolo():
 
 
 def load_tracker():
-    tracker = Sort(max_age=20, min_hits=3, iou_threshold=0.3)
-    return tracker
+    # tracker = Sort(max_age=20, min_hits=3, iou_threshold=0.3)
+    # return tracker
+    return None
 
 
 def enhance_image(model, yolo_model, tracker, frame, counted_ids):
@@ -149,7 +150,7 @@ def enhance_image(model, yolo_model, tracker, frame, counted_ids):
     detections_for_tracker = np.array(detections_for_tracker)
 
     # SORT Tracking
-    tracks = tracker.update(detections_for_tracker)
+    # tracks = tracker.update(detections_for_tracker)
 
     people_count = 0
     vehicle_count = 0
