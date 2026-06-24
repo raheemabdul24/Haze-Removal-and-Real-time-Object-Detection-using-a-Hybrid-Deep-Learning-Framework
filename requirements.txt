@@ -1,13 +1,6 @@
 streamlit
 opencv-python-headless
 numpy
-pillow
-torch
-torchvision
-ultralytics
-streamlit
-opencv-python-headless
-numpy
 pandas
 torch
 torchvision
